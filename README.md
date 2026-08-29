@@ -6,12 +6,14 @@ An advanced Playwright 2.x test automation framework built with TypeScript, feat
 
 - **TypeScript** - Type-safe test development
 - **Page Object Model** - Maintainable and scalable test architecture
-- **Custom Reporter** - Integrated custom reporting with HTML output
+- **Custom Reporter** - Rich HTML report with real-time updates, test steps, screenshots, videos, and traces
+- **AI-Powered Analysis** - AI Data tab, AI Verdict (RCA) for failures, and Flaky Test Analyzer
 - **API Testing** - Built-in support for API test automation
 - **Data Generation** - Faker.js integration for dynamic test data
 - **Logging** - Winston logger for comprehensive test logs
 - **Video & Trace Recording** - Automatic capture on test execution
 - **Screenshot on Failure** - Automatic failure capture for debugging
+- **Per-Step Screenshots (Optional)** - Capture screenshots after every `visualStep` when enabled via flag
 - **Multi-browser Support** - Configurable for Chromium, Firefox, WebKit
 
 ## Project Structure
@@ -19,8 +21,9 @@ An advanced Playwright 2.x test automation framework built with TypeScript, feat
 ```
 AdvPlaywright2xFramework/
 ├── src/
+│   ├── ai/               # AI agents (RCA, Flaky Analyzer)
 │   ├── api/              # API testing utilities and helpers
-│   ├── config/           # Configuration files
+│   ├── config/           # Configuration files (credentials, etc.)
 │   ├── fixtures/         # Test fixtures and setup
 │   ├── pages/            # Page Object Models
 │   │   ├── BasePage.ts
@@ -33,12 +36,15 @@ AdvPlaywright2xFramework/
 │   │   └── ItemDetailPage.ts
 │   ├── testdata/         # Test data files
 │   ├── tests/            # Test specifications
+│   │   ├── e2e/          # End-to-end tests
+│   │   │   └── e2e-checkout.spec.ts
 │   │   └── login.spec.ts
 │   └── utils/            # Utility functions
 │       ├── CustomReporter.ts
 │       ├── DataGenerator.ts
 │       ├── logger.ts
-│       └── UtilElementLocator.ts
+│       ├── UtilElementLocator.ts
+│       └── VisualStep.ts
 ├── .github/              # GitHub workflows and templates
 ├── docs/                 # Documentation
 ├── rules/                # Coding rules and guidelines
@@ -79,7 +85,23 @@ The framework uses `playwright.config.ts` for test configuration. Key settings i
 - **Screenshots**: Captured on failure
 - **Video Recording**: Enabled for all tests
 - **Trace Collection**: Enabled for all tests
-- **Reporter**: List, HTML, and Custom Reporter
+- **Reporter**: List, HTML, and Custom TTA Reporter
+
+### Custom Reporter Settings
+The TTA custom reporter (`src/utils/CustomReporter.ts`) is pre-configured in `playwright.config.ts` and automatically:
+- Copies screenshots, videos, and traces into `tta-report/`
+- Generates a real-time updating HTML report
+- Provides AI-powered analysis tabs (when API keys are configured)
+
+### Per-Step Screenshots
+The framework supports optional screenshot capture at the end of every `visualStep`. This is useful for debugging and detailed reporting, but is **disabled by default** to keep execution fast.
+
+To enable per-step screenshots, set the environment variable:
+```bash
+ENABLE_STEP_SCREENSHOTS=true
+```
+
+When enabled, each step in the TTA HTML report will include a screenshot image.
 
 ## Running Tests
 
@@ -103,12 +125,57 @@ Run tests with debug mode:
 npx playwright test --debug
 ```
 
+Run tests with the TTA custom reporter only:
+```bash
+npx playwright test --reporter=src/utils/CustomReporter.ts
+```
+
+Run tests with per-step screenshots enabled:
+```bash
+# Windows PowerShell
+$env:ENABLE_STEP_SCREENSHOTS="true"
+npx playwright test
+
+# macOS / Linux
+ENABLE_STEP_SCREENSHOTS=true npx playwright test
+```
+
 ## Viewing Reports
 
-HTML Report:
+### TTA Custom HTML Report
+After each run, the custom report is generated in the `tta-report/` folder:
+- `tta-report/index.html` — redirects to the latest report
+- `tta-report/report_YYYYMMDD_HHMMSS.html` — individual run report
+- `tta-report/history.html` — list of all past reports
+
+Open the report directly:
+```bash
+start tta-report/index.html        # Windows
+open tta-report/index.html         # macOS
+```
+
+The report includes:
+- **Stats Dashboard** — total, passed, failed, skipped, pass rate, duration
+- **Test Results Table** — sortable, filterable by priority and status
+- **Test Detail Panel** — click any test name to expand: errors, logs, steps, screenshots, videos, traces
+- **AI Data Tab** — AI-generated test datasets
+- **AI Verdict Tab** — root-cause analysis for failed tests
+- **Flaky Tab** — cross-build flaky test comparison
+
+### Playwright HTML Report
 ```bash
 npx playwright show-report
 ```
+
+### Viewing Traces
+Traces are saved to `tta-report/traces/trace_N.zip`. View them interactively:
+```bash
+npx playwright show-trace tta-report/traces/trace_1.zip
+```
+Or drag & drop the zip file onto [trace.playwright.dev](https://trace.playwright.dev).
+
+### Viewing Videos
+Videos are saved to `tta-report/videos/video_N.webm`. They can be played directly in the TTA report detail panel or opened in any video player.
 
 ## Key Dependencies
 
@@ -130,6 +197,14 @@ Create a `.env` file in the root directory for environment-specific configuratio
 BASE_URL=your_application_url
 API_BASE_URL=your_api_url
 ```
+
+### Optional Flags
+
+| Variable | Values | Description |
+|----------|--------|-------------|
+| `ENABLE_STEP_SCREENSHOTS` | `true` / `1` | Capture a screenshot after every `visualStep` and attach it to the TTA HTML report. Disabled by default. |
+| `TEST_ENV` | any string | Environment label shown in the report (default: `UAT`). |
+| `TEST_AUTHOR` | any string | Author name shown in the report table (default: `TTA-QA`). |
 
 ## Contributing
 

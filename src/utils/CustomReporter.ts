@@ -400,6 +400,11 @@ class CustomTTAReporter implements Reporter {
         this.runningTests.delete(test.id);
         this.completedTestIds.add(test.id);
 
+        // Clean up per-test maps to prevent memory leaks on long runs
+        this.testStepsMap.delete(test.id);
+        this.testStartTimeMap.delete(test.id);
+        this.testStepCounterMap.delete(test.id);
+
         this.updateReportRealTime();
     }
 
@@ -841,6 +846,33 @@ class CustomTTAReporter implements Reporter {
         <img id="modalImage" class="modal-content" src="" alt="Screenshot">
     </div>
 
+    <div id="traceModal" class="modal trace-modal">
+        <div class="trace-modal-content">
+            <span class="modal-close" onclick="closeTraceModal()">&times;</span>
+            <h2>🔍 Playwright Trace Viewer</h2>
+            <div class="trace-options">
+                <div class="trace-option">
+                    <h3>Option 1: Online Viewer</h3>
+                    <p>Go to <a href="https://trace.playwright.dev" target="_blank" class="trace-link">trace.playwright.dev</a> and drag & drop the trace zip file.</p>
+                    <a href="https://trace.playwright.dev" target="_blank" class="trace-action-btn trace-web-btn">Open trace.playwright.dev</a>
+                </div>
+                <div class="trace-option">
+                    <h3>Option 2: CLI (Local)</h3>
+                    <p>Run this command in your terminal:</p>
+                    <div class="trace-cmd-box">
+                        <code id="traceCmd">npx playwright show-trace </code>
+                        <button class="trace-copy-btn" onclick="copyTraceCmd()">Copy</button>
+                    </div>
+                </div>
+                <div class="trace-option">
+                    <h3>Option 3: Download</h3>
+                    <p>Download the trace file and open it with any of the methods above.</p>
+                    <a id="traceDownloadLink" href="#" download class="trace-action-btn trace-download-btn">Download trace.zip</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <footer class="report-footer">
         <p>Built with ❤️ by <a href="https://thetestingacademy.com" target="_blank">Pramod Dutta</a> | <a href="https://thetestingacademy.com" target="_blank">The Testing Academy</a></p>
     </footer>
@@ -1101,7 +1133,7 @@ class CustomTTAReporter implements Reporter {
                         ${test.video ? `<a href="${test.video}" target="_blank" class="video-link-cell">▶️ Play</a>` : 'N/A'}
                     </td>
                     <td class="col-trace">
-                        ${test.trace ? `<a href="${test.trace}" target="_blank" class="trace-link-cell">📁 View</a>` : 'N/A'}
+                        ${test.trace ? `<span class="trace-link-cell" style="cursor:pointer;" onclick="openTraceModal('${test.trace}')" title="Open Trace Viewer">🔍 View</span>` : 'N/A'}
                     </td>
                 </tr>
                 <tr class="test-detail-row" id="detail-row-${test.id}" style="display: none;">
@@ -1271,7 +1303,14 @@ class CustomTTAReporter implements Reporter {
                     <span class="section-arrow">▼</span> Traces
                 </div>
                 <div class="section-content">
-                    <a href="${test.trace}" download class="trace-download">📁 trace</a>
+                    <div class="trace-actions">
+                        <a href="${test.trace}" download class="trace-download">📁 Download trace.zip</a>
+                        <button class="trace-view-btn" onclick="openTraceModal('${test.trace}')">🔍 Open Trace Viewer</button>
+                    </div>
+                    <div style="margin-top:12px; font-size:12px; color:var(--gray-600);">
+                        <strong>Quick Commands:</strong><br/>
+                        <code style="background:var(--gray-100); padding:2px 6px; border-radius:4px; display:inline-block; margin-top:4px;">npx playwright show-trace ${test.trace}</code>
+                    </div>
                 </div>
             </div>`;
         }
@@ -1601,10 +1640,14 @@ class CustomTTAReporter implements Reporter {
             background: white;
             border-radius: var(--radius);
             box-shadow: var(--shadow-lg);
-            overflow: hidden;
+            overflow-x: auto;
+            max-height: 70vh;
+            overflow-y: auto;
         }
         .test-table {
             width: 100%;
+            min-width: 1200px;
+            table-layout: fixed;
             border-collapse: separate;
             border-spacing: 0;
             font-size: 13px;
@@ -1615,6 +1658,12 @@ class CustomTTAReporter implements Reporter {
             position: sticky;
             top: 0;
             z-index: 10;
+        }
+        .test-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: linear-gradient(135deg, var(--dark) 0%, var(--gray-700) 100%);
         }
         .test-table th {
             padding: 16px 12px;
@@ -1655,16 +1704,16 @@ class CustomTTAReporter implements Reporter {
 
         /* Column widths */
         .col-sno { width: 50px; text-align: center; font-weight: 600; color: var(--gray-400); }
-        .col-suite { min-width: 120px; }
-        .col-testname { min-width: 280px; }
+        .col-suite { min-width: 100px; }
+        .col-testname { min-width: 220px; }
         .col-author { width: 80px; }
         .col-group { width: 80px; }
-        .col-tags { min-width: 120px; }
-        .col-file { min-width: 140px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--gray-500); }
-        .col-starttime, .col-endtime { width: 160px; font-size: 12px; color: var(--gray-500); }
+        .col-tags { min-width: 100px; }
+        .col-file { min-width: 120px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--gray-500); }
+        .col-starttime, .col-endtime { width: 130px; font-size: 12px; color: var(--gray-500); }
         .col-duration { width: 80px; text-align: center; font-weight: 600; }
         .col-status { width: 100px; text-align: center; }
-        .col-screenshot, .col-video, .col-trace { width: 80px; text-align: center; }
+        .col-screenshot, .col-video, .col-trace { width: 70px; text-align: center; }
 
         .test-name-link {
             color: var(--dark);
@@ -2007,6 +2056,12 @@ class CustomTTAReporter implements Reporter {
         }
 
         /* Trace & Video */
+        .trace-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
         .trace-download {
             display: inline-flex;
             align-items: center;
@@ -2025,6 +2080,130 @@ class CustomTTAReporter implements Reporter {
             background: var(--primary);
             color: white;
             border-color: var(--primary);
+        }
+        .trace-view-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+            color: #7c3aed;
+            border: 1px solid #c4b5fd;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .trace-view-btn:hover {
+            background: #8b5cf6;
+            color: white;
+            border-color: #7c3aed;
+        }
+        .trace-modal .trace-modal-content {
+            background: white;
+            border-radius: var(--radius);
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 32px;
+            position: relative;
+            box-shadow: var(--shadow-xl);
+        }
+        .trace-modal h2 {
+            margin-bottom: 20px;
+            color: var(--dark);
+            font-size: 20px;
+        }
+        .trace-options {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .trace-option {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+        }
+        .trace-option h3 {
+            font-size: 15px;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+        .trace-option p {
+            font-size: 13px;
+            color: var(--gray-600);
+            margin-bottom: 12px;
+        }
+        .trace-action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+        .trace-web-btn {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #2563eb;
+            border: 1px solid #93c5fd;
+        }
+        .trace-web-btn:hover {
+            background: #3b82f6;
+            color: white;
+        }
+        .trace-download-btn {
+            background: linear-gradient(135deg, var(--primary-bg) 0%, #d1fae5 100%);
+            color: var(--primary-dark);
+            border: 1px solid var(--primary-light);
+        }
+        .trace-download-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+        .trace-cmd-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--dark);
+            color: #a7f3d0;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+        .trace-cmd-box code {
+            flex: 1;
+            word-break: break-all;
+        }
+        .trace-copy-btn {
+            padding: 6px 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .trace-copy-btn:hover {
+            background: var(--primary-dark);
+        }
+        .trace-link {
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .trace-link:hover {
+            text-decoration: underline;
         }
         .test-video {
             max-width: 100%;
@@ -2208,8 +2387,10 @@ class CustomTTAReporter implements Reporter {
                 const detailRow = document.getElementById('detail-row-' + testId);
 
                 row.style.display = (statusMatch && groupMatch) ? '' : 'none';
-                if (detailRow && detailRow.style.display !== 'none') {
-                    detailRow.style.display = (statusMatch && groupMatch) ? 'table-row' : 'none';
+                if (detailRow) {
+                    if (!statusMatch || !groupMatch) {
+                        detailRow.style.display = 'none';
+                    }
                 }
             });
         }
@@ -2255,6 +2436,43 @@ class CustomTTAReporter implements Reporter {
                     toggleTestDetail(testId);
                 }
             });
+        });
+
+        // Trace Viewer Modal
+        function openTraceModal(tracePath) {
+            const modal = document.getElementById('traceModal');
+            const cmdEl = document.getElementById('traceCmd');
+            const downloadLink = document.getElementById('traceDownloadLink');
+            if (modal) {
+                modal.classList.add('active');
+                if (cmdEl) cmdEl.textContent = 'npx playwright show-trace ' + tracePath;
+                if (downloadLink) downloadLink.href = tracePath;
+            }
+        }
+
+        function closeTraceModal() {
+            const modal = document.getElementById('traceModal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        function copyTraceCmd() {
+            const cmdEl = document.getElementById('traceCmd');
+            if (cmdEl) {
+                navigator.clipboard.writeText(cmdEl.textContent).then(() => {
+                    const btn = document.querySelector('.trace-copy-btn');
+                    if (btn) {
+                        const original = btn.textContent;
+                        btn.textContent = 'Copied!';
+                        setTimeout(() => btn.textContent = original, 1500);
+                    }
+                });
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeTraceModal();
+            }
         });
         `;
     }

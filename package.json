@@ -4,12 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npx playwright test",
+    "trace": "npx playwright show-trace",
+    "report": "npx playwright show-report"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@playwright/test": "^1.62.0",
     "@faker-js/faker": "^10.6.0",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
