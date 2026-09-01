@@ -34,7 +34,9 @@ AdvPlaywright2xFramework/
 │   │   ├── CheckoutStepTwoPage.ts
 │   │   ├── CheckoutCompletePage.ts
 │   │   └── ItemDetailPage.ts
-│   ├── testdata/         # Test data files
+│   ├── testdata/         # Test data files (JSON, CSV, Excel)
+│   │   ├── logintestdata.json
+│   │   └── logintestdata.ts
 │   ├── tests/            # Test specifications
 │   │   ├── e2e/          # End-to-end tests
 │   │   │   ├── e2e-checkout.spec.ts
@@ -119,6 +121,8 @@ npx playwright test --headed
 Run specific test file:
 ```bash
 npx playwright test login.spec.ts
+npx playwright test e2e-checkout.spec.ts
+npx playwright test e2e-checkout-fixtures.spec.ts
 ```
 
 Run tests with debug mode:
@@ -140,6 +144,19 @@ npx playwright test
 # macOS / Linux
 ENABLE_STEP_SCREENSHOTS=true npx playwright test
 ```
+
+## Test Data
+
+Login credentials are stored in `src/testdata/logintestdata.json` and consumed by both fixtures and specs:
+
+| Username | Password | Type |
+|----------|----------|------|
+| `standard_user` | `tta_secret` | Valid |
+| `locked_out_user` | `tta_secret` | Invalid (blocked) |
+| `problem_user` | `tta_secret` | Valid |
+| `performance_glitch_user` | `tta_secret` | Valid |
+| `error_user` | `tta_secret` | Valid |
+| `visual_user` | `tta_secret` | Valid |
 
 ## Test Fixtures
 
@@ -208,7 +225,21 @@ npx playwright show-trace tta-report/traces/trace_1.zip
 Or drag & drop the zip file onto [trace.playwright.dev](https://trace.playwright.dev).
 
 ### Viewing Videos
-Videos are saved to `tta-report/videos/video_N.webm`. They can be played directly in the TTA report detail panel or opened in any video player.
+Videos are saved to:
+- `test-results/**/video.webm` (Playwright default)
+- `tta-report/videos/video_N.webm` (TTA custom reporter)
+
+They can be played directly in the TTA report detail panel, the Playwright HTML report, or opened in any video player.
+
+```bash
+npx playwright show-report
+```
+
+Or open the video file directly:
+```bash
+start test-results/**/video.webm   # Windows
+open test-results/**/video.webm    # macOS
+```
 
 ## Key Dependencies
 
