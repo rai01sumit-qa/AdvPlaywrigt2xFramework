@@ -37,7 +37,8 @@ AdvPlaywright2xFramework/
 │   ├── testdata/         # Test data files
 │   ├── tests/            # Test specifications
 │   │   ├── e2e/          # End-to-end tests
-│   │   │   └── e2e-checkout.spec.ts
+│   │   │   ├── e2e-checkout.spec.ts
+│   │   │   └── e2e-checkout-fixtures.spec.ts
 │   │   └── login.spec.ts
 │   └── utils/            # Utility functions
 │       ├── CustomReporter.ts
@@ -139,6 +140,38 @@ npx playwright test
 # macOS / Linux
 ENABLE_STEP_SCREENSHOTS=true npx playwright test
 ```
+
+## Test Fixtures
+
+The framework provides reusable Playwright fixtures in `src/fixtures/test-base.ts` to speed up test setup and reduce boilerplate:
+
+| Fixture | Description | Use When |
+|---------|-------------|----------|
+| `invalidLogin` | Attempts login with `locked_out_user` and asserts the error banner is visible. | Testing negative login flows or proving unauthorised users cannot reach protected pages. |
+| `validLogin` | Logs in as `standard_user` and hands over an authenticated `LoginPage`. | Any test that needs to start already logged in. |
+| `loginWithInventory` | Builds on `validLogin`, navigates to inventory, and asserts it is loaded. | Tests that operate directly on the inventory page. |
+| `loginWithSelectedItem` | Builds on `loginWithInventory`, adds `test-allthethings-tshirt-red` to the cart. | Tests that need an item pre-loaded in the cart (fastest checkout setup). |
+
+### Example — Using Fixtures in a Spec
+
+```typescript
+import { test, expect } from '@fixtures/test-base';
+
+test('checkout with pre-selected item', async ({
+    loginWithSelectedItem,
+    cartPage,
+    checkoutStepOnePage,
+    checkoutStepTwoPage,
+    checkoutCompletePage,
+}) => {
+    // Item is already in the cart — just proceed to checkout
+    await cartPage.open();
+    await cartPage.checkout();
+    // ... fill details and finish
+});
+```
+
+See `src/tests/e2e/e2e-checkout-fixtures.spec.ts` for a full demonstration of all four fixtures.
 
 ## Viewing Reports
 
