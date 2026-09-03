@@ -262,6 +262,19 @@ BASE_URL=your_application_url
 API_BASE_URL=your_api_url
 ```
 
+### Checkout Test Variables
+
+The following variables are used by `e2e-checkout-env.spec.ts`:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `STANDARD_USER` | Username for checkout tests | `standard_user` |
+| `TTA_SECRET` | Password for checkout tests | `tta_secret` |
+| `CHECKOUT_ITEM_ID` | Product ID to add to cart | `test-allthethings-tshirt-red` |
+| `CHECKOUT_FIRST_NAME` | First name for checkout form | `Pramod` |
+| `CHECKOUT_LAST_NAME` | Last name for checkout form | `Dutta` |
+| `CHECKOUT_POSTAL_CODE` | Postal code for checkout form | `560001` |
+
 ### Optional Flags
 
 | Variable | Values | Description |
