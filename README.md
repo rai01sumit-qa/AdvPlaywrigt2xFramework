@@ -14,6 +14,7 @@ An advanced Playwright 2.x test automation framework built with TypeScript, feat
 - **Video & Trace Recording** - Automatic capture on test execution
 - **Screenshot on Failure** - Automatic failure capture for debugging
 - **Per-Step Screenshots (Optional)** - Capture screenshots after every `visualStep` when enabled via flag
+- **API Testing** - Dedicated Playwright project for REST API tests with request fixtures
 - **Multi-browser Support** - Configurable for Chromium, Firefox, WebKit
 
 ## Project Structure
@@ -22,7 +23,9 @@ An advanced Playwright 2.x test automation framework built with TypeScript, feat
 AdvPlaywright2xFramework/
 ├── src/
 │   ├── ai/               # AI agents (RCA, Flaky Analyzer)
-│   ├── api/              # API testing utilities and helpers
+│   ├── api/              # API test specifications
+│   │   └── 01_restfulbooker_raw/
+│   │       └── 01_basic_ping.spec.ts
 │   ├── config/           # Configuration files (credentials, etc.)
 │   ├── fixtures/         # Test fixtures and setup
 │   ├── pages/            # Page Object Models
@@ -163,17 +166,46 @@ flowchart TD
 The framework uses `playwright.config.ts` for test configuration. Key settings include:
 
 - **Test Directory**: `./src/tests`
+- **API Test Directory**: `./src/api`
 - **Headless Mode**: Disabled (visible browser)
 - **Screenshots**: Captured on failure
 - **Video Recording**: Enabled for all tests
 - **Trace Collection**: Enabled for all tests
 - **Reporter**: List, HTML, and Custom TTA Reporter
 
+### Projects
+The config defines two projects:
+- **`chromium`** — Runs E2E tests in Chrome (viewport: 1920x1080)
+- **`api`** — Runs API tests against `https://restful-booker.herokuapp.com`
+
 ### Custom Reporter Settings
 The TTA custom reporter (`src/utils/CustomReporter.ts`) is pre-configured in `playwright.config.ts` and automatically:
 - Copies screenshots, videos, and traces into `tta-report/`
 - Generates a real-time updating HTML report
 - Provides AI-powered analysis tabs (when API keys are configured)
+
+### API Testing
+API tests live in `src/api/` and run under the dedicated `api` project. They use Playwright's `request` fixture for HTTP calls.
+
+**Example:**
+```typescript
+import { test, expect } from '@playwright/test';
+
+test('should return 201 Created on ping', async ({ request }) => {
+    await test.step('Send ping request', async () => {
+        const response = await request.get('https://restful-booker.herokuapp.com/ping');
+        console.log(`Response status: ${response.status()}`);
+
+        expect(response.status()).toBe(201);
+
+        const body = await response.text();
+        console.log(`Response body: ${body}`);
+        expect(body).toContain('Created');
+    });
+});
+```
+
+**Tip:** Wrap API calls in `test.step()` and use `console.log()` to emit request/response details. The TTA reporter captures these logs and displays them in the **Test Steps** → **Console Output** panel.
 
 ### Per-Step Screenshots
 The framework supports optional screenshot capture at the end of every `visualStep`. This is useful for debugging and detailed reporting, but is **disabled by default** to keep execution fast.
@@ -203,6 +235,12 @@ npx playwright test login.spec.ts
 npx playwright test e2e-checkout.spec.ts
 npx playwright test e2e-checkout-fixtures.spec.ts
 npx playwright test e2e-checkout-env.spec.ts
+```
+
+Run API tests:
+```bash
+npx playwright test --project=api
+npx playwright test src/api/01_restfulbooker_raw/01_basic_ping.spec.ts --project=api
 ```
 
 Run tests with debug mode:
@@ -337,6 +375,10 @@ flowchart LR
 
 ### TTA Custom HTML Report
 After each run, the custom report is generated in the `tta-report/` folder:
+
+> **Recent fixes:**
+> - Fixed Windows path display in the **File** column (shows filename only instead of full absolute path)
+> - Fixed table text overlapping by adding overflow handling and proper column widths
 - `tta-report/index.html` — redirects to the latest report
 - `tta-report/report_YYYYMMDD_HHMMSS.html` — individual run report
 - `tta-report/history.html` — list of all past reports

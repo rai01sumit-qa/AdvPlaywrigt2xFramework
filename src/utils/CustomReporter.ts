@@ -361,7 +361,7 @@ class CustomTTAReporter implements Reporter {
             fullTitle: [...describePath, test.title].join(' › '),
             file: test.location.file,
             describePath: describePath,
-            location: `${test.location.file.split('/').pop()}:${test.location.line}`,
+            location: `${test.location.file.split(/[/\\]/).pop()}:${test.location.line}`,
             duration: result.duration,
             status: status,
             retry: result.retry,
@@ -1679,6 +1679,7 @@ class CustomTTAReporter implements Reporter {
             padding: 14px 12px;
             border-bottom: 1px solid var(--gray-100);
             vertical-align: middle;
+            overflow: hidden;
         }
         .test-table tbody tr {
             background: white;
@@ -1709,8 +1710,8 @@ class CustomTTAReporter implements Reporter {
         .col-author { width: 80px; }
         .col-group { width: 80px; }
         .col-tags { min-width: 100px; }
-        .col-file { min-width: 120px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--gray-500); }
-        .col-starttime, .col-endtime { width: 130px; font-size: 12px; color: var(--gray-500); }
+        .col-file { min-width: 120px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--gray-500); word-break: break-all; }
+        .col-starttime, .col-endtime { width: 150px; font-size: 12px; color: var(--gray-500); white-space: nowrap; }
         .col-duration { width: 80px; text-align: center; font-weight: 600; }
         .col-status { width: 100px; text-align: center; }
         .col-screenshot, .col-video, .col-trace { width: 70px; text-align: center; }
