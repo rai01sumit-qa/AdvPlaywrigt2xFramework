@@ -10,8 +10,9 @@
 
 import { test, expect } from '@fixtures/test-base';
 import { DataGenerator } from '@utils/DataGenerator';
-import { createLogger } from '@utils/logger';
 import { visualStep } from '@utils/visualStep';
+import { createLogger } from '@utils/logger';
+
 
 const log = createLogger('e2e-checkout-fixtures');
 const FIRST_ITEM_ID = 'test-allthethings-tshirt-red';

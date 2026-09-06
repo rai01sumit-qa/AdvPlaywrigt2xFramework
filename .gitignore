@@ -11,3 +11,4 @@ node_modules/
 /logs/
 /reports/
 /tta-report/
+.env.e2e

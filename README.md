@@ -40,20 +40,99 @@ AdvPlaywright2xFramework/
 │   ├── tests/            # Test specifications
 │   │   ├── e2e/          # End-to-end tests
 │   │   │   ├── e2e-checkout.spec.ts
-│   │   │   └── e2e-checkout-fixtures.spec.ts
+│   │   │   ├── e2e-checkout-fixtures.spec.ts
+│   │   │   └── e2e-checkout-env.spec.ts
 │   │   └── login.spec.ts
 │   └── utils/            # Utility functions
 │       ├── CustomReporter.ts
 │       ├── DataGenerator.ts
+│       ├── envLoader.ts
 │       ├── logger.ts
 │       ├── UtilElementLocator.ts
 │       └── VisualStep.ts
 ├── .github/              # GitHub workflows and templates
 ├── docs/                 # Documentation
+├── learning/             # Learning & build records
 ├── rules/                # Coding rules and guidelines
 ├── playwright.config.ts  # Playwright configuration
 ├── package.json          # Dependencies and scripts
 └── tsconfig.json         # TypeScript configuration
+```
+
+---
+
+## Architecture Diagram
+
+```mermaid
+flowchart TD
+    subgraph TestLayer["🧪 Test Layer"]
+        T1["e2e-checkout.spec.ts"]
+        T2["e2e-checkout-fixtures.spec.ts"]
+        T3["e2e-checkout-env.spec.ts"]
+        T4["login.spec.ts"]
+    end
+
+    subgraph FixtureLayer["🔧 Fixture Layer"]
+        F1["test-base.ts"]
+        F2["invalidLogin"]
+        F3["validLogin"]
+        F4["loginWithInventory"]
+        F5["loginWithSelectedItem"]
+    end
+
+    subgraph PageObjectLayer["📄 Page Object Layer"]
+        P1["LoginPage"]
+        P2["InventoryPage"]
+        P3["CartPage"]
+        P4["CheckoutStepOnePage"]
+        P5["CheckoutStepTwoPage"]
+        P6["CheckoutCompletePage"]
+    end
+
+    subgraph ConfigLayer["⚙️ Config Layer"]
+        C1["playwright.config.ts"]
+        C2["credentials.ts"]
+        C3[".env.e2e"]
+        C4["envLoader.ts"]
+    end
+
+    subgraph ReportLayer["📊 Report Layer"]
+        R1["CustomReporter"]
+        R2["HTML Report"]
+        R3["TTA Report"]
+    end
+
+    T1 --> F1
+    T2 --> F1
+    T3 --> F1
+    T4 --> F1
+    F1 --> F2
+    F1 --> F3
+    F1 --> F4
+    F1 --> F5
+    T1 --> P1
+    T2 --> P1
+    T3 --> P1
+    F4 --> P2
+    F5 --> P2
+    P2 --> P3
+    P3 --> P4
+    P4 --> P5
+    P5 --> P6
+    C3 --> C4
+    C4 --> T3
+    T1 --> R1
+    T2 --> R1
+    T3 --> R1
+    T4 --> R1
+    R1 --> R2
+    R1 --> R3
+
+    style TestLayer fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style FixtureLayer fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style PageObjectLayer fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    style ConfigLayer fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style ReportLayer fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
 ```
 
 ## Prerequisites
@@ -123,6 +202,7 @@ Run specific test file:
 npx playwright test login.spec.ts
 npx playwright test e2e-checkout.spec.ts
 npx playwright test e2e-checkout-fixtures.spec.ts
+npx playwright test e2e-checkout-env.spec.ts
 ```
 
 Run tests with debug mode:
@@ -143,6 +223,30 @@ npx playwright test
 
 # macOS / Linux
 ENABLE_STEP_SCREENSHOTS=true npx playwright test
+```
+
+### Checkout E2E Flow
+
+```mermaid
+flowchart TD
+    Start(["Start Test"]) --> Login["🔐 LoginPage<br/>Enter credentials"]
+    Login --> Inventory["🏪 InventoryPage<br/>Browse products"]
+    Inventory --> AddCart["🛒 Add item to cart<br/>inventoryPage.addToCart()"]
+    AddCart --> CartPage["📋 CartPage<br/>Review items"]
+    CartPage --> Checkout1["✏️ CheckoutStepOne<br/>Fill guest details"]
+    Checkout1 --> Checkout2["📦 CheckoutStepTwo<br/>Review order"]
+    Checkout2 --> Complete["✅ CheckoutComplete<br/>Assert order complete"]
+    Complete --> End(["End Test"])
+
+    style Start fill:#e8f5e9,stroke:#2e7d32
+    style Login fill:#fff3e0,stroke:#ef6c00
+    style Inventory fill:#e3f2fd,stroke:#1565c0
+    style AddCart fill:#f3e5f5,stroke:#6a1b9a
+    style CartPage fill:#fce4ec,stroke:#c62828
+    style Checkout1 fill:#e0f7fa,stroke:#00838f
+    style Checkout2 fill:#e0f7fa,stroke:#00838f
+    style Complete fill:#e8f5e9,stroke:#2e7d32
+    style End fill:#e8f5e9,stroke:#2e7d32
 ```
 
 ## Test Data
@@ -189,6 +293,45 @@ test('checkout with pre-selected item', async ({
 ```
 
 See `src/tests/e2e/e2e-checkout-fixtures.spec.ts` for a full demonstration of all four fixtures.
+
+---
+
+## Checkout Test Evolution
+
+The framework includes **three variants** of the same checkout flow, demonstrating progressive test design patterns:
+
+```mermaid
+flowchart LR
+    subgraph V1["V1: Hardcoded"]
+        A1["e2e-checkout.spec.ts"] --> B1["Hardcoded credentials"]
+        A1 --> C1["Hardcoded item ID"]
+        A1 --> D1["Random fake data"]
+    end
+
+    subgraph V2["V2: Fixtures"]
+        A2["e2e-checkout-fixtures.spec.ts"] --> B2["Reusable login fixtures"]
+        A2 --> C2["Pre-built app states"]
+        A2 --> D2["Less boilerplate"]
+    end
+
+    subgraph V3["V3: .env Config"]
+        A3["e2e-checkout-env.spec.ts"] --> B3["Reads from .env.e2e"]
+        A3 --> C3["No code changes needed"]
+        A3 --> D3["CI-friendly & portable"]
+    end
+
+    V1 --> V2 --> V3
+
+    style V1 fill:#ffcccc,stroke:#cc0000,stroke-width:2px
+    style V2 fill:#ffffcc,stroke:#cccc00,stroke-width:2px
+    style V3 fill:#ccffcc,stroke:#00cc00,stroke-width:2px
+```
+
+| Version | Approach | Best For |
+|---------|----------|----------|
+| **V1** | Hardcoded values | Learning the flow, quick prototypes |
+| **V2** | Fixtures | Reusable setup, DRY tests |
+| **V3** | `.env` driven | Environment-specific configs, CI/CD, secrets management |
 
 ## Viewing Reports
 
@@ -274,6 +417,49 @@ The following variables are used by `e2e-checkout-env.spec.ts`:
 | `CHECKOUT_FIRST_NAME` | First name for checkout form | `Pramod` |
 | `CHECKOUT_LAST_NAME` | Last name for checkout form | `Dutta` |
 | `CHECKOUT_POSTAL_CODE` | Postal code for checkout form | `560001` |
+
+### How `.env` Integration Works
+
+```mermaid
+flowchart LR
+    subgraph EnvFile["📝 .env.e2e"]
+        E1["STANDARD_USER"]
+        E2["TTA_SECRET"]
+        E3["CHECKOUT_ITEM_ID"]
+        E4["CHECKOUT_FIRST_NAME"]
+    end
+
+    subgraph Loader["🔍 envLoader.ts"]
+        L1["Reads .env file"]
+        L2["Parses key=value pairs"]
+    end
+
+    subgraph Memory["🧠 process.env"]
+        M1["process.env.STANDARD_USER"]
+        M2["process.env.TTA_SECRET"]
+        M3["process.env.CHECKOUT_ITEM_ID"]
+    end
+
+    subgraph Test["🧪 e2e-checkout-env.spec.ts"]
+        T1["const USERNAME = process.env.STANDARD_USER \|\| 'fallback'"]
+        T2["Uses values in test steps"]
+    end
+
+    EnvFile --> Loader
+    Loader --> Memory
+    Memory --> Test
+
+    style EnvFile fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Loader fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+    style Memory fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Test fill:#fce4ec,stroke:#c62828,stroke-width:2px
+```
+
+**Key points:**
+- `envLoader.ts` wraps `dotenv` to load any `.env` file by name
+- The spec calls `loadEnvFile('.env.e2e')` **before** other imports
+- Fallback defaults (`|| 'default'`) allow local dev without the file
+- CI strict mode fails fast if required variables are missing
 
 ### Optional Flags
 
